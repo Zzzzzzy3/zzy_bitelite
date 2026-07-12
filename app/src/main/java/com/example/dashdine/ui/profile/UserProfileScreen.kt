@@ -30,7 +30,8 @@ data class Address(val id: String, val name: String, val phone: String, val deta
 
 @Composable
 fun UserProfileScreen(
-    onOrderListClick: () -> Unit = {}
+    onOrderListClick: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     // ── 可编辑状态 ──
     var userName by remember { mutableStateOf("美食爱好者") }
@@ -102,7 +103,7 @@ fun UserProfileScreen(
         Spacer(Modifier.height(16.dp))
 
         // ── 功能列表 ──
-        SettingsSection()
+        SettingsSection(onLogout = onLogout)
 
         Spacer(Modifier.height(24.dp))
     }
@@ -394,7 +395,7 @@ private fun QuickActionItem(
 }
 
 @Composable
-private fun SettingsSection() {
+private fun SettingsSection(onLogout: () -> Unit) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -413,15 +414,18 @@ private fun SettingsSection() {
             SettingsItem(icon = Icons.Filled.HelpOutline, label = "帮助与反馈", color = TagBlue)
             HorizontalDivider(color = DividerLight, modifier = Modifier.padding(horizontal = 56.dp))
             SettingsItem(icon = Icons.Filled.Info, label = "关于 BiteLite", color = TextSecondary)
+            HorizontalDivider(color = DividerLight, modifier = Modifier.padding(horizontal = 56.dp))
+            SettingsItem(icon = Icons.Filled.Logout, label = "退出登录", color = ErrorRed, onClick = onLogout)
         }
     }
 }
 
 @Composable
-private fun SettingsItem(icon: ImageVector, label: String, color: Color) {
+private fun SettingsItem(icon: ImageVector, label: String, color: Color, onClick: (() -> Unit)? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

@@ -5,16 +5,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import com.example.dashdine.ui.auth.AuthViewModel
+import com.example.dashdine.ui.auth.LoginScreen
+import com.example.dashdine.ui.auth.RegisterScreen
 import com.example.dashdine.ui.chat.AiChatScreen
 import com.example.dashdine.ui.checkout.CheckoutScreen
 import com.example.dashdine.ui.checkout.OrderSuccessScreen
@@ -31,8 +34,12 @@ import com.example.dashdine.ui.tracking.OrderTrackingScreen
 fun AppNavGraph(navController: NavHostController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
     val showBottomBar = currentRoute in bottomBarRoutes
+
+    // 共享同一个 AuthViewModel
+    val authViewModel: AuthViewModel = hiltViewModel()
+    val authState by authViewModel.uiState.collectAsState()
+    val startLoggedIn = authState.isLoggedIn
 
     Scaffold(
         containerColor = BackgroundWhite,
@@ -42,10 +49,7 @@ fun AppNavGraph(navController: NavHostController) {
                     currentRoute = currentRoute,
                     onItemClick = { screen ->
                         navController.navigate(screen.route) {
-                            // 避免在回退栈中堆积多个相同 Tab
-                            popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
-                            }
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
                             launchSingleTop = true
                             restoreState = true
                         }
@@ -56,9 +60,41 @@ fun AppNavGraph(navController: NavHostController) {
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Home.route,
+            startDestination = if (startLoggedIn) Screen.Home.route else Screen.Login.route,
             modifier = Modifier.padding(paddingValues)
         ) {
+            // ═══════════════════════════════════════
+            // 认证流程
+            // ═══════════════════════════════════════
+
+            composable(Screen.Login.route) {
+                LoginScreen(
+                    viewModel = authViewModel,
+                    onLoginSuccess = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    },
+                    onGoRegister = {
+                        navController.navigate(Screen.Register.route)
+                    }
+                )
+            }
+
+            composable(Screen.Register.route) {
+                RegisterScreen(
+                    viewModel = authViewModel,
+                    onRegisterSuccess = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    },
+                    onGoLogin = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
             // ═══════════════════════════════════════
             // 底部导航 Tab 页面
             // ═══════════════════════════════════════
@@ -91,6 +127,13 @@ fun AppNavGraph(navController: NavHostController) {
                 UserProfileScreen(
                     onOrderListClick = {
                         navController.navigate(Screen.OrderList.route)
+                    },
+                    onLogout = {
+                        authViewModel.logout {
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
                     }
                 )
             }
@@ -195,7 +238,6 @@ private fun AppBottomNavigationBar(
     ) {
         bottomNavItems.forEach { item ->
             val selected = currentRoute == item.screen.route
-
             NavigationBarItem(
                 selected = selected,
                 onClick = { onItemClick(item.screen) },
@@ -224,12 +266,8 @@ private fun AppBottomNavigationBar(
     }
 }
 
-/**
- * 简单菜品名→店铺ID映射，用于 AI 推荐卡片点击跳转
- * 如果找不到精确匹配，返回默认店铺 "s1"
- */
+/** 简单菜品名→店铺ID映射 */
 private fun findStoreForDish(dishName: String): String {
-    // s1 老王家的味道 — 菜品最多
     val s1Dishes = setOf(
         "招牌红烧肉饭", "香辣鸡腿堡套餐", "番茄牛肉面", "糖醋里脊盖饭",
         "经典麻婆豆腐", "宫保鸡丁套餐", "日式咖喱猪排饭", "酸菜鱼单人份",
@@ -238,12 +276,10 @@ private fun findStoreForDish(dishName: String): String {
         "冰镇柠檬水", "珍珠奶茶", "冰美式咖啡", "鲜榨橙汁",
         "抹茶提拉米苏", "芒果糯米饭", "巧克力熔岩蛋糕"
     )
-    // s2 川味小馆 — 川菜
     val s2Dishes = setOf(
         "水煮鱼", "回锅肉", "担担面", "麻辣香锅", "辣子鸡丁饭",
         "红油抄手", "老成都冰粉", "麻辣香锅 (小份)", "红油抄手 (10个)"
     )
-
     return when {
         s2Dishes.any { dishName.contains(it) || it.contains(dishName) } -> "s2"
         s1Dishes.any { dishName.contains(it) || it.contains(dishName) } -> "s1"

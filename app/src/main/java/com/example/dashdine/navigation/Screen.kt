@@ -9,6 +9,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
  * 导航路由定义
  */
 sealed class Screen(val route: String) {
+    // ── 认证 ──
+    data object Login : Screen("login")
+    data object Register : Screen("register")
+
     // ── 底部导航 Tab ──
     data object Home : Screen("home")
     data object Tracking : Screen("tracking")
