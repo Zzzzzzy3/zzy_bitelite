@@ -18,10 +18,10 @@
 ## ✨ 预览
 
 <p align="center">
-  <img src="screenshots/home.png" width="22%" />
-  <img src="screenshots/tracking.png" width="22%" />
-  <img src="screenshots/chat.png" width="22%" />
-  <img src="screenshots/profile.png" width="22%" />
+  <img src="screenshots/home.jpg" width="22%" />
+  <img src="screenshots/track.jpg" width="22%" />
+  <img src="screenshots/chat.jpg" width="22%" />
+  <img src="screenshots/foodshow.jpg" width="22%" />
 </p>
 
 ## 🏗️ 技术栈
